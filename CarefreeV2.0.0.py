@@ -1,3 +1,4 @@
+import config
 import os
 import time
 from msedge.selenium_tools import Edge, EdgeOptions
@@ -14,9 +15,10 @@ print('=                Scrap TF Raffler       V2.0                             
 print('=                           by Neek0tine                                                     =')
 print('==============================================================================================')
 
-tolerance = 2
-delay = 3.5
-headless = False
+tolerance = config.tolerance
+delay = config.delay
+headless = config.headless
+chk_frq = config.chk_frq
 
 
 def initialize():  # Initialize the webdriver engine
@@ -59,7 +61,7 @@ def initialize():  # Initialize the webdriver engine
 
             print(f'[+] You have entered : {entered_count} raffles')
             print(f'[+] Raffles available : {total_count} raffles')
-            print(f'[+] Raffles to be joined : {available_count} raffles')
+            print(f'[+] Raffles to be joined : {available_count} raffles\n')
             return [entered_count, total_count, available_count]
         except:
             print('Unable to get website data. Are you logged in?')
@@ -73,7 +75,6 @@ def initialize():  # Initialize the webdriver engine
 
     def get_links():  # Collecting raffle links
         stat = get_stat()
-        print('\n[+] Getting raffle links ...')
         joined = []
         available = []
         total = []
@@ -100,15 +101,16 @@ def initialize():  # Initialize the webdriver engine
                     total.remove(y)
 
             available = list(set(total) - set(joined))
-
+            print('[+] Getting raffle links ...')
             print(f'[+] Collected {len(joined)} links to joined raffles')
             print(f'[+] Collected {len(total)} links to all raffles')
             print(f'[+] Collected {len(available)} links to join-able raffles')
 
-        print('\n[+] Raffle links collected and validated')
+
         return joined, total, available
 
     def enter_raffle():
+        print('\n[+] All raffle links collected!')
         joined, total, available = get_links()
 
         for raffle in available:
@@ -122,11 +124,12 @@ def initialize():  # Initialize the webdriver engine
             time.sleep(delay)
 
     def overwatch():
-        print('[!] All raffles joined, monitoring new raffles ...')
         while True:
             stat = get_stat()
-            if stat[0] == stat[1]:
-                time.sleep(30)
+            if stat[0] >= stat[1]:
+                print('\n[!] All raffles joined, monitoring new raffles ...')
+                print('====================================================')
+                time.sleep(chk_frq)
                 driver.refresh()
             else:
                 enter_raffle()
