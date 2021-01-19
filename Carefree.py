@@ -2,6 +2,7 @@ import config
 import random
 import time
 import os
+from winreg import *
 from urllib.request import urlretrieve
 from msedge.selenium_tools import Edge, EdgeOptions
 
@@ -33,17 +34,43 @@ def initialize():  # Initialize the webdriver engine
     else:
         options.add_argument(argument='--headless')
 
+    def tutorial():
+        print('\n[!] What to do after you downloaded the browser engine? [!]')
+        time.sleep(1)
+        print(
+            '1. The WebDriver is downloaded in consideration of your browser version and is located at your "Downloads" folder')
+        time.sleep(1)
+        print(
+            '2. To enable the program, the engine "msedgedriver.exe" needs to be placed in PATH. If you"re not sure which directory in your system is PATH, put "msedgedriver.exe" to "System32"')
+        time.sleep(1)
+        print(
+            'I understand your worry about doing something with System32, or you could add PATH yourself if you feel uncomfortable')
+        time.sleep(0.5)
+        print('Documentation regarding adding folder to path: "https://docs.alfresco.com/4.2/tasks/fot-addpath.html" ')
+        print()
+        print(
+            'If you"re wondering why I do not automate adding PATH in this program, I do not want to do system wide changes in your system. Everything that happens here is within your consent.')
+        exit()
+
     def get_engine():
-        localappdata = os.getenv('LOCALAPPDATA')
-        install_dir = str(localappdata + '\\Microsoft\\Edge\\Auto-raffler')
+        with OpenKey(HKEY_CURRENT_USER, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders') as key:
+            Downloads = QueryValueEx(key, '{374DE290-123F-4565-9164-39C4925E467B}')[0]
+
+        keyPath1 = r"Software\Microsoft\Edge\BLBeacon"
+        key1 = OpenKey(HKEY_CURRENT_USER, keyPath1, 0, KEY_READ)
+        edgeVersion1 = QueryValueEx(key1, "version")[0]
+        edgeVersion1 = str(edgeVersion1)
+
+        #  localappdata = os.getenv('LOCALAPPDATA') <- Nick's installation folder
+        install_dir = str('C:\\Windows\\System32')
         files_list = os.listdir(install_dir)
 
         if 'msedgedriver.exe' in files_list:
             pass
         else:
             print('[!] Browser engine not found, downloading ...')
-            ms_site = 'https://msedgedriver.azureedge.net/87.0.664.75/edgedriver_win32.zip'
-            destination = str(install_dir + '\\msedgedriver.exe')
+            ms_site = f'https://msedgedriver.azureedge.net/{edgeVersion1}/edgedriver_win32.zip'
+            destination = str(Downloads + '\\edgedriver_win32.zip')
             urlretrieve(ms_site, destination)
             y = 0
             while y < 100:
@@ -54,6 +81,7 @@ def initialize():  # Initialize the webdriver engine
                     break
                 else:
                     print("\r Download progress :  {}".format(y), '%', end="")
+            tutorial()
 
     get_engine()
 
@@ -67,8 +95,8 @@ def initialize():  # Initialize the webdriver engine
 
     get_profile()
 
-    driver = Edge(options=options,
-                  executable_path='C:\\Users\\nicho\\AppData\\Local\\Microsoft\\Edge\\Auto-raffler\\msedgedriver.exe')
+    driver = Edge(options=options, executable_path='C:\\Windows\\System32\\msedgedriver.exe')
+
     """
     try:
         driver = Edge(options=options,
