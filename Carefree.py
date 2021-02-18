@@ -1,12 +1,14 @@
-import config
 import random
 import time
 import os
 from winreg import *
 from urllib.request import urlretrieve
 from msedge.selenium_tools import Edge, EdgeOptions
+from configparser import ConfigParser
 
-#  TODO: ERROR 216, FIX, NOW
+config = ConfigParser()
+config.read('config.ini')
+run_options = config['OPTIONS']
 
 print('==============================================================================================')
 print('=  ________      ________      ________  ________  ___           _______       ________      =')
@@ -20,16 +22,20 @@ print('=                Scrap TF Raffler       V2.0                             
 print('=                           by Neek0tine                                                     =')
 print('==============================================================================================')
 
-tolerance = config.tolerance
-delay = config.delay
-headless = config.headless
-chk_frq = config.chk_frq
+tolerance = int(run_options['tolerance'])  # How many scrap.tf stats missmatch tolerated. 0 being a perfect match, will result in overflow if the website gives false data
+delay = float(run_options['delay'])  # How many seconds the program enter another raffle. Internet speed and browser load speed is taken into consideration (5 sec each raffle)
+headless = str(run_options['headless'])  # Experimental, using this will surely bug the program
+headless = headless.casefold()
+chk_frq = int(run_options['chk_frq'])  # The interval between refresh in active monitoring mode. (RECOMMENDED >5)
 
 
-def initialize():  # Initialize the webdriver engine
+def initialize():  # Initialize the program
     options = EdgeOptions()
     options.use_chromium = True
-    if headless is False:
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    options.add_experimental_option("prefs", prefs)
+
+    if headless == 'false':
         pass
     else:
         options.add_argument(argument='--headless')
@@ -97,19 +103,6 @@ def initialize():  # Initialize the webdriver engine
 
     driver = Edge(options=options, executable_path='C:\\Windows\\System32\\msedgedriver.exe')
 
-    """
-    try:
-        driver = Edge(options=options,
-                      executable_path='C:\\Users\\nicho\\AppData\\Local\\Microsoft\\Edge\\Auto-raffler\\msedgedriver.exe')
-    except OSError:
-        os.remove(os.getenv('LOCALAPPDATA')+'\\Microsoft\\Edge\\Auto-raffler\\msedgedriver.exe')
-        print()
-        print('[!] Unsupported browser engine! Please check the readme file on how to fix this!')
-        exit()
-    driver = Edge(options=options,
-                  executable_path='C:\\Users\\nicho\\AppData\\Local\\Microsoft\\Edge\\Auto-raffler\\msedgedriver.exe')
-    """
-
     def get_stat():
         # Get raffle info
         driver.get("https://scrap.tf/raffles")
@@ -122,10 +115,6 @@ def initialize():  # Initialize the webdriver engine
             total_count = stat[-1]
             total_count = int(total_count)
             available_count = total_count - entered_count
-
-            print(f'[+] You have entered : {entered_count} raffles')
-            print(f'[+] Raffles available : {total_count} raffles')
-            print(f'[+] Raffles to be joined : {available_count} raffles\n')
             return [entered_count, total_count, available_count]
         except:
             print('Unable to get website data. Are you logged in?')
@@ -143,7 +132,7 @@ def initialize():  # Initialize the webdriver engine
         available = []
         total = []
 
-        while len(joined) < stat[0] - tolerance and len(available) != stat[2]:
+        while len(available) != stat[2]:
             z = 0
             while driver.find_element_by_class_name('panel-body.raffle-pagination-done').text != "That's all, no more!":
                 z += 1
@@ -170,44 +159,50 @@ def initialize():  # Initialize the webdriver engine
             print(f'[+] Collected {len(total)} links to all raffles')
             print(f'[+] Collected {len(available)} links to join-able raffles')
         print('\n[+] All raffle links collected!')
-
         return joined, total, available
 
     def enter_raffle():
         joined, total, available = get_links()
-        for raffle in available:
-            print("\r {}".format(len(available)), 'Raffles left', end="")
-            driver.get(url=raffle)
-            desc = ''
-            try:
-                driver.find_element_by_css_selector(
-                    '#pid-viewraffle > div.container > div > div.well.raffle-well > div.row.raffle-opts-row > div.col-xs-7.enter-raffle-btns > button:nth-child(3)').click()
-            except:
+
+        def overwatch():
+            while True:
+                stat = get_stat()
+                if stat[0] >= stat[1]:
+
+                    print('====================================================')
+                    time.sleep(chk_frq)
+                    driver.refresh()
+                else:
+                    enter_raffle()
+
+        def raffle_joiner():
+            start = time.time()
+            start = int(start)
+            for raffle in available:
+                start = int(start)
+                driver.get(url=raffle)
+                desc = ''
                 try:
-                    desc = driver.find_element_by_class_name('raffle-row-full-width').text
+                    driver.find_element_by_css_selector('#pid-viewraffle > div.container > div > div.well.raffle-well > div.row.raffle-opts-row > div.col-xs-7.enter-raffle-btns > button:nth-child(3)').click()
                 except:
-                    print('[!]Uknown error occured, pleas contact the developer!')
-                if 'raffle ended' in desc:
-                    print('[!] A raffle has ended and I failed to join it on time!')
+                    try:
+                        desc = driver.find_element_by_class_name('raffle-row-full-width').text
+                    except:
+                        print('\n[!]Uknown error occured, pleas contact the developer!')
+                    if 'raffle ended' in desc:
+                        print('\n[!] A raffle has ended and I failed to join it on time!')
+                    joined.append(raffle)
+                    available.remove(raffle)
+                print("\r {}".format(len(available)), f'Raffles left.', end="")
+                time.sleep(delay)
+            stop = time.time()
+            elapsed = stop - start
+            print(f'\n[!] All raffles joined. Elapsed time : {round(elapsed):02d} seconds')
+            overwatch()
 
-            joined.append(raffle)
-            available.remove(raffle)
-            time.sleep(delay)
-
-    def overwatch():
-        while True:
-            stat = get_stat()
-            if stat[0] >= stat[1]:
-                print('\n[!] All raffles joined, monitoring new raffles ...')
-                print('====================================================')
-                time.sleep(chk_frq)
-                driver.refresh()
-            else:
-                enter_raffle()
+        raffle_joiner()
 
     enter_raffle()
-    overwatch()
-    driver.quit()
 
 
 initialize()

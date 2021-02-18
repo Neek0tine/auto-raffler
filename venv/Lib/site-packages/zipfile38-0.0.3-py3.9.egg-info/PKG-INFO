@@ -1,0 +1,36 @@
+Metadata-Version: 1.1
+Name: zipfile38
+Version: 0.0.3
+Summary: Read and write ZIP files - backport of the zipfile module from Python 3.8
+Home-page: https://github.com/lorencarvalho/zipfile38
+Author: Loren Carvalho
+Author-email: UNKNOWN
+License: UNKNOWN
+Description: |pypi|
+        
+        A backport of the zipfile module from Python 3.8, which contains notable improvements such as the "strict_timestamps" keyword argument (which enables the creation of reproducible zip archives).
+        
+        installation::
+        
+            pip install zipfile38
+        
+        usage:
+        
+        .. code:: python
+        
+            if sys.version_info >= (3, 8):
+                import zipfile
+            else:
+                import zipfile38 as zipfile
+        
+        ---
+        
+        shout out to `Thomas Kluyver's backport for 3.6 <https://gitlab.com/takluyver/zipfile36>`_ and `Markus Scheidgen's backport for 3.7 <https://github.com/markus1978/zipfile37>`_.
+        
+        .. |pypi| image:: https://img.shields.io/pypi/v/zipfile38.svg
+           :target: https://pypi.org/project/zipfile38/
+        
+Platform: UNKNOWN
+Classifier: License :: OSI Approved :: Python Software Foundation License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: System :: Archiving :: Compression
