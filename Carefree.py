@@ -154,10 +154,10 @@ def initialize():  # Initialize the program
                     total.remove(y)
 
             available = list(set(total) - set(joined))
-            print('[+] Getting raffle links ...')
-            print(f'[+] Collected {len(joined)} links to joined raffles')
-            print(f'[+] Collected {len(total)} links to all raffles')
-            print(f'[+] Collected {len(available)} links to join-able raffles')
+        print('[+] Getting raffle links ...')
+        print(f'[+] Collected {len(joined)} links to joined raffles')
+        print(f'[+] Collected {len(total)} links to all raffles')
+        print(f'[+] Collected {len(available)} links to join-able raffles')
         print('\n[+] All raffle links collected!')
         return joined, total, available
 
@@ -165,20 +165,32 @@ def initialize():  # Initialize the program
         joined, total, available = get_links()
 
         def overwatch():
+            t = chk_frq
             while True:
                 stat = get_stat()
                 if stat[0] >= stat[1]:
-
-                    print('====================================================')
-                    time.sleep(chk_frq)
+                    while t != 0:
+                        print(f'\r Refreshing in {t} seconds', end=" ")
+                        time.sleep(1)
+                        t -= 1
                     driver.refresh()
+                    t = chk_frq
                 else:
-                    enter_raffle()
+                    get_stat()
+                    raffle_joiner()
+
+        if joined == total and len(available) == 0:
+            print('No raffles are available to be joined. Entering overwatch mode.')
+            print('====================================================')
+            overwatch()
 
         def raffle_joiner():
             start = time.time()
             start = int(start)
             for raffle in available:
+                joined.append(raffle)
+                available.remove(raffle)
+                print(f"\r{len(available)} Raffles left.", end=" ")
                 start = int(start)
                 driver.get(url=raffle)
                 desc = ''
@@ -191,13 +203,11 @@ def initialize():  # Initialize the program
                         print('\n[!]Uknown error occured, pleas contact the developer!')
                     if 'raffle ended' in desc:
                         print('\n[!] A raffle has ended and I failed to join it on time!')
-                    joined.append(raffle)
-                    available.remove(raffle)
-                print("\r {}".format(len(available)), f'Raffles left.', end="")
                 time.sleep(delay)
             stop = time.time()
             elapsed = stop - start
             print(f'\n[!] All raffles joined. Elapsed time : {round(elapsed):02d} seconds')
+            print('====================================================')
             overwatch()
 
         raffle_joiner()
